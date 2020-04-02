@@ -9,34 +9,71 @@ export async function check(
   }
 
   let result = false;
-  groupByCondition(context, "or").forEach(async orGroup => {
-    result = result || (await checkOrGroup(executor, orGroup));
-  });
+
+  await Promise.all(
+    groupByCondition(context, "or").map(async orGroup => {
+      result = result || (await checkOrGroup(executor, orGroup));
+    }),
+  );
 
   return result;
 }
 
 type Executor = vsc.ExecuteCommand<any>;
 
-type Context = Value | Expression | Array<Context>;
-
-type Value =
+type Context =
   | string
-  | {
-      context: string;
-      not?: boolean;
-      args?: any;
-    };
+  | ObjectExpression
+  | Command
+  | ArrayExpression
+  | Context[];
 
-type Expression = [Value, Operator, any];
+type ArrayExpression = [Command, Command, any];
 
-type Operator =
-  | string
-  | {
-      operator: string;
-      not?: boolean;
-      args?: any;
-    };
+type ObjectExpression = {
+  context: Command;
+  operator: Command;
+  value: any;
+};
+
+type Command = string | { command: string; args: any; not?: boolean };
+
+async function checkOrGroup(executor: Executor, orGroup: Context[]) {
+  return (
+    await Promise.all(
+      groupByCondition(orGroup, "and").map(async part => {
+        if (isArrayExpression(part)) {
+          return await runExpression(executor, part[1], part[0], part[2]);
+        }
+
+        if (part.length > 1) {
+          throw new Error("Invalid expression: " + JSON.stringify(part));
+        }
+
+        const value = part[0];
+
+        if (isObjectExpression(value)) {
+          return await runExpression(
+            executor,
+            value.operator,
+            value.context,
+            value.value,
+          );
+        }
+
+        if (isCommand(value)) {
+          return await runCommand(executor, value);
+        }
+
+        if (value instanceof Array) {
+          return await check(executor, value);
+        }
+
+        throw new Error("Invalid expression: " + JSON.stringify(part));
+      }),
+    )
+  ).every(Boolean);
+}
 
 function groupByCondition(context: Context[], operator: string): Context[][] {
   const results: Context[][] = [[]];
@@ -55,114 +92,108 @@ function groupByCondition(context: Context[], operator: string): Context[][] {
   return results;
 }
 
-function isExpression(value: Context[]): value is Expression {
-  return value.length === 3 && isValue(value[0]) && isOperator(value[1]);
+function isArrayExpression(value: Context[]): value is ArrayExpression {
+  return value.length === 3 && isCommand(value[0]) && isCommand(value[1]);
 }
 
-function isValue(value: any): value is Value {
+function isObjectExpression(object: any): object is ObjectExpression {
+  if (typeof object !== "object" || !object) {
+    return false;
+  }
+
   return (
-    !(value instanceof Array) &&
-    (typeof value === "string" || "context" in value)
+    "context" in object &&
+    isCommand(object.context) &&
+    "operator" in object &&
+    isCommand(object.operator) &&
+    "value" in object
   );
 }
 
-function isOperator(value: any): value is Operator {
+function isCommand(object: any): object is Command {
   return (
-    !(value instanceof Array) &&
-    (typeof value === "string" || "operator" in value)
+    typeof object === "string" || ("command" in object && "args" in object)
   );
 }
 
-async function checkOrGroup(executor: Executor, orGroup: Context[]) {
-  return (
-    await Promise.all(
-      groupByCondition(orGroup, "and").map(async expression => {
-        if (isExpression(expression)) {
-          return await runOperator(
-            executor,
-            expression[1],
-            await runValue(executor, expression[0]),
-            expression[2],
-          );
-        }
-
-        if (expression.length === 1) {
-          if (isValue(expression[0])) {
-            return await runContext(executor, expression[0]);
-          }
-
-          if (expression[0] instanceof Array) {
-            return await check(executor, expression[0]);
-          }
-        }
-
-        throw new Error("Invalid expression: " + JSON.stringify(expression));
-      }),
-    )
-  ).every(Boolean);
-}
-
-async function runContext(
+async function runCommand(
   executor: Executor,
-  context: string | Value,
+  context: Command,
 ): Promise<boolean> {
-  const [not, command, args] =
-    typeof context === "string"
-      ? extractExpression(context)
-      : [context.not || false, context.context, context.args];
-
+  const [not, command, args] = extractExpression(context);
   return applyNegation(await executor(`context.values.${command}`, args), not);
 }
 
-async function runValue(
+async function runExpression(
   executor: Executor,
-  value: string | Value,
-): Promise<boolean> {
-  const [command, args] =
-    typeof value === "string"
-      ? extractArgs(value)
-      : [value.context, value.args];
-
-  return await executor(`context.values.${command}`, args);
-}
-
-async function runOperator(
-  executor: Executor,
-  operator: string | Operator,
-  left: any,
+  operator: Command,
+  context: Command,
   right: any,
 ): Promise<boolean> {
-  const [not, command, args] =
-    typeof operator === "string"
-      ? extractExpression(operator)
-      : [operator.not || false, operator.operator, operator.args];
+  const [not, operatorCommand, operatorArgs] = extractExpression(operator);
+  const [, contextCommand, contextArgs] = extractExpression(context);
+  const left = await executor(`context.values.${contextCommand}`, contextArgs);
 
   return applyNegation(
-    await executor(`context.operators.${command}`, { ...args, left, right }),
+    await executor(`context.operators.${operatorCommand}`, {
+      args: operatorArgs,
+      left,
+      right,
+    }),
     not,
   );
 }
 
-function extractExpression(value: string): [boolean, string, any] {
-  const [valueWithoutNegation, isNegate] = extractNegation(value);
-  const [valueWithoutArgs, args] = extractArgs(valueWithoutNegation);
-  return [isNegate, valueWithoutArgs, args];
+function extractExpression(command: Command): [boolean, string, any] {
+  if (typeof command === "string") {
+    const [commandWithoutNegation, isNegate] = extractNegation(command);
+    const [commandWithoutArgs, args] = extractArgs(commandWithoutNegation);
+    return [isNegate, commandWithoutArgs, args];
+  }
+
+  return [command.not || false, command.command, command.args];
 }
 
 function extractNegation(value: string): [string, boolean] {
   const trimmed = value.trim();
 
-  if (trimmed.startsWith("not")) {
-    return [trimmed.substring(3).trim(), true];
+  if (trimmed.startsWith("not ")) {
+    return [trimmed.substring(4).trim(), true];
+  }
+
+  if (trimmed.startsWith("!")) {
+    return [trimmed.substring(1).trim(), true];
   }
 
   return [value, false];
 }
 
 function extractArgs(context: string) {
-  if (context.trim().endsWith(")")) {
-    const [value, tail] = context.split("(", 1);
-    return [value, JSON.parse("[" + tail.trim().substring(0, -1) + "]")];
+  const match = context.match(/^(.*?)\((.*?)\)\s*$/);
+
+  if (match) {
+    const [, value, tail] = match;
+
+    if (tail.includes('"')) {
+      try {
+        return [value, JSON.parse("[" + tail + "]")];
+      } catch (error) {
+        throw new Error(
+          'Failed to parse arguments JSON "' + tail + '": ' + error.message,
+        );
+      }
+    }
+
+    return [
+      value,
+      tail
+        .split(",")
+        .map(value =>
+          value.trim().match(/^\d+|true|false|null$/)
+            ? JSON.parse(value)
+            : value.trim(),
+        ),
+    ];
   }
 
   return [context, undefined];
