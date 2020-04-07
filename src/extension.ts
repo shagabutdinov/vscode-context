@@ -1,12 +1,17 @@
 import * as vscode from "vscode";
-import * as commands from "./extension/context";
+import { check } from "./extension/scope";
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
-    vscode.commands.registerTextEditorCommand(
-      "commands.run",
-      (editor: vscode.TextEditor, edit: vscode.TextEditorEdit, args: any) =>
-        commands.run(vscode.commands.executeCommand, args),
+    vscode.commands.registerCommand("scope.check", (args: any) =>
+      check(vscode.commands.executeCommand, args),
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "scope.selections",
+      () => vscode.window.activeTextEditor?.selections,
     ),
   );
 }
