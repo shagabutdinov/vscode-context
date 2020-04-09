@@ -11,8 +11,8 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("scope.check", (args: any) =>
-      check(document, args[0]),
+    vscode.commands.registerCommand("scope.check", (scope: any) =>
+      check(document, scope),
     ),
   );
 }

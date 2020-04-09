@@ -206,5 +206,5 @@ async function execute(document: Document, scope: Command): Promise<any> {
     return await document.commands[scope.command](...args);
   }
 
-  return await document.execute(`scope.${scope.command}`, args);
+  return await document.execute(`scope.${scope.command}`, ...args);
 }
