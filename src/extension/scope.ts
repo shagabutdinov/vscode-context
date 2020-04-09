@@ -2,142 +2,147 @@ import { isEqual } from "lodash";
 import * as vsc from "./lib/vsc";
 import { parse, Expression, Command, Object } from "./grammar";
 
+export type Document = {
+  execute: vsc.ExecuteCommand<any>;
+  commands: Record<string, (...args: any) => Promise<any>>;
+};
+
 export async function check(
-  executor: Executor,
+  document: Document,
   scope: string | string[],
 ): Promise<boolean> {
   if (scope instanceof Array) {
     scope = scope.join(" ");
   }
 
-  return !!(await run(executor, parse(scope)));
+  const result = !!(await run(document, parse(scope)));
+  console.log("XXXX scope.ts:18", scope, result);
+  return result;
 }
 
-type Executor = vsc.ExecuteCommand<any>;
-
-async function run(executor: Executor, scope: Expression): Promise<any> {
+async function run(document: Document, scope: Expression): Promise<any> {
   if ("value" in scope) {
     return scope.value;
   }
 
   if ("array" in scope) {
-    return await runArray(executor, scope.array);
+    return await runArray(document, scope.array);
   }
 
   if ("object" in scope) {
-    return await runObject(executor, scope);
+    return await runObject(document, scope);
   }
 
   if ("command" in scope) {
-    return await runCommand(executor, scope);
+    return await runCommand(document, scope);
   }
 
   throw new Error("Unknown scope value: " + JSON.stringify(scope));
 }
 
 async function runArray(
-  executor: Executor,
+  document: Document,
   array: Expression[],
 ): Promise<any[]> {
   const result: any = [];
 
   for (const value of array) {
-    result.push(await run(executor, value));
+    result.push(await run(document, value));
   }
 
   return result;
 }
 
-async function runObject(executor: Executor, scope: Object) {
+async function runObject(document: Document, scope: Object) {
   const result: any = {};
 
   for (const [key, value] of Object.entries(scope.object)) {
-    result[key] = await run(executor, value);
+    result[key] = await run(document, value);
   }
 
   return result;
 }
 
-async function runCommand(executor: Executor, scope: Command) {
+async function runCommand(document: Document, scope: Command) {
   if (scope.command === "and") {
-    return runCommandAnd(executor, scope);
+    return runCommandAnd(document, scope);
   }
 
   if (scope.command === "or") {
-    return runCommandOr(executor, scope);
+    return runCommandOr(document, scope);
   }
 
   if (scope.command === "==") {
-    return runCommandEqual(executor, scope);
+    return runCommandEqual(document, scope);
   }
 
   if (scope.command === "!=") {
-    return !(await runCommandEqual(executor, scope));
+    return !(await runCommandEqual(document, scope));
   }
 
   if (scope.command === "<") {
-    return runCommandLesser(executor, scope);
+    return runCommandLesser(document, scope);
   }
 
   if (scope.command === "<=") {
-    return runCommandLesserOrEqual(executor, scope);
+    return runCommandLesserOrEqual(document, scope);
   }
 
   if (scope.command === ">") {
-    return runCommandGreater(executor, scope);
+    return runCommandGreater(document, scope);
   }
 
   if (scope.command === ">=") {
-    return runCommandGreaterOrEqual(executor, scope);
+    return runCommandGreaterOrEqual(document, scope);
   }
 
-  return runCommandExternal(executor, scope);
+  return runCommandExternal(document, scope);
 }
 
-async function runCommandAnd(executor: Executor, scope: Command) {
+async function runCommandAnd(document: Document, scope: Command) {
   let result = true;
   for (const arg of scope.args) {
-    result = result && (await run(executor, arg));
+    result = result && (await run(document, arg));
   }
 
   return result;
 }
 
-async function runCommandOr(executor: Executor, scope: Command) {
+async function runCommandOr(document: Document, scope: Command) {
   let result = false;
   for (const arg of scope.args) {
-    result = result || (await run(executor, arg));
+    result = result || (await run(document, arg));
   }
 
   return result;
 }
 
-async function runCommandEqual(executor: Executor, scope: Command) {
-  const [left, right] = await getComparisonArgs(executor, scope);
+async function runCommandEqual(document: Document, scope: Command) {
+  const [left, right] = await getComparisonArgs(document, scope);
   return isEqual(left, right);
 }
 
-async function runCommandGreater(executor: Executor, scope: Command) {
-  const [left, right] = await getComparisonArgs(executor, scope);
+async function runCommandGreater(document: Document, scope: Command) {
+  const [left, right] = await getComparisonArgs(document, scope);
   return left > right;
 }
 
-async function runCommandGreaterOrEqual(executor: Executor, scope: Command) {
-  const [left, right] = await getComparisonArgs(executor, scope);
+async function runCommandGreaterOrEqual(document: Document, scope: Command) {
+  const [left, right] = await getComparisonArgs(document, scope);
   return left >= right;
 }
 
-async function runCommandLesser(executor: Executor, scope: Command) {
-  const [left, right] = await getComparisonArgs(executor, scope);
+async function runCommandLesser(document: Document, scope: Command) {
+  const [left, right] = await getComparisonArgs(document, scope);
   return left < right;
 }
 
-async function runCommandLesserOrEqual(executor: Executor, scope: Command) {
-  const [left, right] = await getComparisonArgs(executor, scope);
+async function runCommandLesserOrEqual(document: Document, scope: Command) {
+  const [left, right] = await getComparisonArgs(document, scope);
   return left <= right;
 }
 
-async function getComparisonArgs(executor: Executor, scope: Command) {
+async function getComparisonArgs(document: Document, scope: Command) {
   if (scope.args.length !== 2) {
     throw new Error(
       'Wrong number of arguments for "==" operator: ' + scope.args.length,
@@ -145,20 +150,17 @@ async function getComparisonArgs(executor: Executor, scope: Command) {
   }
 
   return [
-    await run(executor, scope.args[0]),
-    await run(executor, scope.args[1]),
+    await run(document, scope.args[0]),
+    await run(document, scope.args[1]),
   ];
 }
 
-async function runCommandExternal(executor: Executor, scope: Command) {
-  let result = await executor(
-    `scope.${scope.command}`,
-    await runArray(executor, scope.args),
-  );
+async function runCommandExternal(document: Document, scope: Command) {
+  let result = await execute(document, scope);
 
   for (const part of scope.chain) {
     if ("property" in part) {
-      if (!result.hasOwnProperty(part.property)) {
+      if (!(part.property in result)) {
         throw new Error(
           'Unknown property "' +
             part.property +
@@ -172,7 +174,7 @@ async function runCommandExternal(executor: Executor, scope: Command) {
     }
 
     if ("method" in part) {
-      if (!result.hasOwnProperty(part.method)) {
+      if (!(part.method in result)) {
         throw new Error(
           'Unknown method "' +
             part.method +
@@ -182,7 +184,7 @@ async function runCommandExternal(executor: Executor, scope: Command) {
       }
 
       result = await result[part.method](
-        ...(await runArray(executor, part.args)),
+        ...(await runArray(document, part.args)),
       );
 
       continue;
@@ -196,4 +198,14 @@ async function runCommandExternal(executor: Executor, scope: Command) {
   }
 
   return result;
+}
+
+async function execute(document: Document, scope: Command): Promise<any> {
+  const args = await runArray(document, scope.args);
+  if (scope.command in document.commands) {
+    const r = await document.commands[scope.command](...args);
+    return await document.commands[scope.command](...args);
+  }
+
+  return await document.execute(`scope.${scope.command}`, args);
 }

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { check } from "../extension/scope";
+import { check, Document } from "../extension/scope";
 
 const Commands: Record<string, (args: any) => any> = {
   "scope.commandTrue": () => true,
@@ -20,103 +20,120 @@ const run = async (command: string, args?: any) => {
   return await Promise.resolve(result(args));
 };
 
+const document: Document = {
+  execute: run,
+  commands: {},
+};
+
 suite("Context", () => {
   test("returns true", async () => {
-    assert.equal(true, await check(run, "commandTrue()"));
+    assert.equal(true, await check(document, "commandTrue()"));
   });
 
   test("returns false", async () => {
-    assert.equal(false, await check(run, "commandFalse()"));
+    assert.equal(false, await check(document, "commandFalse()"));
   });
 
   test("returns false for and", async () => {
-    assert.equal(false, await check(run, "commandFalse() && commandTrue()"));
+    assert.equal(
+      false,
+      await check(document, "commandFalse() && commandTrue()"),
+    );
   });
 
   test("returns true for or", async () => {
-    assert.equal(true, await check(run, "commandFalse() || commandTrue()"));
+    assert.equal(
+      true,
+      await check(document, "commandFalse() || commandTrue()"),
+    );
   });
 
   test("returns false for nested and", async () => {
     assert.equal(
       false,
-      await check(run, "commandFalse() && (commandFalse() && commandTrue())"),
+      await check(
+        document,
+        "commandFalse() && (commandFalse() && commandTrue())",
+      ),
     );
   });
 
   test("returns true for nested or", async () => {
     assert.equal(
       true,
-      await check(run, "commandFalse() || (commandFalse() || commandTrue())"),
+      await check(
+        document,
+        "commandFalse() || (commandFalse() || commandTrue())",
+      ),
     );
   });
 
   test("chains true property", async () => {
-    assert.equal(true, await check(run, "getObject().trueProperty"));
+    assert.equal(true, await check(document, "getObject().trueProperty"));
   });
 
   test("chains false property", async () => {
-    assert.equal(false, await check(run, "getObject().falseProperty"));
+    assert.equal(false, await check(document, "getObject().falseProperty"));
   });
 
   test("chains callback", async () => {
     assert.equal(
       true,
-      await check(run, "getObject().callback({KEY: true}).KEY"),
+      await check(document, "getObject().callback({KEY: true}).KEY"),
     );
   });
 
   suite("operators", () => {
     test("negates", async () => {
-      assert.equal(false, await check(run, "!commandTrue()"));
+      assert.equal(false, await check(document, "!commandTrue()"));
     });
 
     test("returns true for equals operator", async () => {
-      assert.equal(true, await check(run, "0 == 0"));
+      assert.equal(true, await check(document, "0 == 0"));
     });
 
     test("returns false for equals operator", async () => {
-      assert.equal(false, await check(run, "0 == 1"));
+      assert.equal(false, await check(document, "0 == 1"));
     });
 
     test("returns true for non-equals operator", async () => {
-      assert.equal(true, await check(run, "0 != 1"));
+      assert.equal(true, await check(document, "0 != 1"));
     });
 
     test("returns false for non-equals operator", async () => {
-      assert.equal(false, await check(run, "0 != 0"));
+      assert.equal(false, await check(document, "0 != 0"));
     });
 
     test("returns true for greater operator", async () => {
-      assert.equal(true, await check(run, "1 > 0"));
+      assert.equal(true, await check(document, "1 > 0"));
     });
 
     test("returns false for greater operator", async () => {
-      assert.equal(false, await check(run, "1 > 2"));
+      assert.equal(false, await check(document, "1 > 2"));
     });
 
     test("returns true for greater or equal operator", async () => {
-      assert.equal(true, await check(run, "1 >= 1"));
+      assert.equal(true, await check(document, "1 >= 1"));
     });
 
     test("returns false for greater or equal operator", async () => {
-      assert.equal(false, await check(run, "1 >= 2"));
+      assert.equal(false, await check(document, "1 >= 2"));
     });
 
     test("returns true for lesser operator", async () => {
-      assert.equal(true, await check(run, "0 < 1"));
+      assert.equal(true, await check(document, "0 < 1"));
     });
 
     test("returns false for lesser operator", async () => {
-      assert.equal(false, await check(run, "1 < 0"));
+      assert.equal(false, await check(document, "1 < 0"));
     });
 
     test("returns true for lesser or equal operator", async () => {
-      assert.equal(true, await check(run, "1 <= 1"));
+      assert.equal(true, await check(document, "1 <= 1"));
     });
 
     test("returns false for lesser or equal operator", async () => {
-      assert.equal(false, await check(run, "2 <= 1"));
+      assert.equal(false, await check(document, "2 <= 1"));
     });
   });
 });
