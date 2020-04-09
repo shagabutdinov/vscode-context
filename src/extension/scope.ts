@@ -1,6 +1,6 @@
-import { isEqual } from "lodash";
 import * as vsc from "./lib/vsc";
 import { parse, Expression, Command, Object } from "./grammar";
+const isEqual = require("deep-equal");
 
 export type Document = {
   execute: vsc.ExecuteCommand<any>;
@@ -16,7 +16,6 @@ export async function check(
   }
 
   const result = !!(await run(document, parse(scope)));
-  console.log("XXXX scope.ts:18", scope, result);
   return result;
 }
 
