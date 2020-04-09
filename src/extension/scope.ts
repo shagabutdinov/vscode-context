@@ -4,8 +4,12 @@ import { parse, Expression, Command, Object } from "./grammar";
 
 export async function check(
   executor: Executor,
-  scope: string,
+  scope: string | string[],
 ): Promise<boolean> {
+  if (scope instanceof Array) {
+    scope = scope.join(" ");
+  }
+
   return !!(await run(executor, parse(scope)));
 }
 
@@ -140,10 +144,10 @@ async function getComparisonArgs(executor: Executor, scope: Command) {
     );
   }
 
-  const left = await run(executor, scope.args[0]);
-  const right = await run(executor, scope.args[1]);
-
-  return [left, right];
+  return [
+    await run(executor, scope.args[0]),
+    await run(executor, scope.args[1]),
+  ];
 }
 
 async function runCommandExternal(executor: Executor, scope: Command) {
