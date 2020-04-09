@@ -10,6 +10,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
+      "scope.selection",
+      () => vscode.window.activeTextEditor?.selection,
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
       "scope.selections",
       () => vscode.window.activeTextEditor?.selections,
     ),

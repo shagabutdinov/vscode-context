@@ -13,7 +13,8 @@
   ],
   "activationEvents": [
     "onCommand:scope.check",
-    "onCommand:scope.selections.isSingle"
+    "onCommand:scope.selection",
+    "onCommand:scope.selections"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -23,8 +24,12 @@
         "title": "Scope: Check"
       },
       {
-        "command": "scope.selections.isSingle",
-        "title": "Scope: Is active editor has single selection"
+        "command": "scope.selection",
+        "title": "Scope: Lead selection"
+      },
+      {
+        "command": "scope.selections",
+        "title": "Scope: Selections array"
       }
     ]
   },
