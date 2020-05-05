@@ -1,28 +1,16 @@
 import * as assert from "assert";
-import { check, Document } from "../extension/scope";
-
-const Commands: Record<string, (args: any) => any> = {
-  "scope.commandTrue": () => true,
-  "scope.commandFalse": () => false,
-  "scope.getObject": () => ({
-    trueProperty: true,
-    falseProperty: false,
-    callback: (arg: any) => arg,
-  }),
-};
-
-const run = async (command: string, args?: any) => {
-  const result = Commands[command];
-  if (result === undefined) {
-    throw new Error("Unknown command: " + command);
-  }
-
-  return await Promise.resolve(result(args));
-};
+import { check, Document } from "../../extension/context";
 
 const document: Document = {
-  execute: run,
-  commands: {},
+  commands: {
+    commandTrue: () => true,
+    commandFalse: () => false,
+    getObject: () => ({
+      trueProperty: true,
+      falseProperty: false,
+      callback: (arg: any) => arg,
+    }),
+  },
 };
 
 suite("Context", () => {
@@ -81,6 +69,35 @@ suite("Context", () => {
       true,
       await check(document, "getObject().callback({KEY: true}).KEY"),
     );
+  });
+
+  suite("cache", () => {
+    let counter = 0;
+
+    const document: Document = {
+      commands: {
+        command: () => (counter += 1),
+      },
+    };
+
+    setup(() => {
+      counter = 0;
+    });
+
+    test("caches", async () => {
+      await check(document, "[command(), command()]");
+      assert.equal(counter, 1);
+    });
+
+    test("caches with args", async () => {
+      await check(document, "[command(1), command(1)]");
+      assert.equal(counter, 1);
+    });
+
+    test("caches with different args", async () => {
+      await check(document, "[command(1), command(2)]");
+      assert.equal(counter, 2);
+    });
   });
 
   suite("operators", () => {

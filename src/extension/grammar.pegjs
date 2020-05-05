@@ -1,5 +1,3 @@
-// a = string
-
 sentence "expression"
   = ws head:value ws tail:(ws (operatorBoolean) ws value)* ws {
     let currentAnd = [head];
@@ -33,8 +31,8 @@ sentence "expression"
   }
 
 operatorBoolean "operator" = operatorOr / operatorAnd
-operatorOr "or" = "or" / "||" { return "or" }
-operatorAnd "and" = "and" / "&&" { return "and" }
+operatorOr "or" = "||" { return "or" }
+operatorAnd "and" = "&&" { return "and" }
 
 expression
   = left:raw
@@ -45,12 +43,10 @@ expression
   / "!" ws result:raw { return { ...result, not: true } }
 
 operator
-  = operator:(o:([^a-zA-Z0-9. ]+) ! {
+  = operator:(o:([^a-zA-Z0-9. (){}\[\],:]+) ! {
     return (
       (o[0] === '|' && o[1] === '|') ||
-      (o[0] === '&' || o[1] === '&') ||
-      o[0] == ',' ||
-      o[0] == ':'
+      (o[0] === '&' || o[1] === '&')
     )
   }) {
     return text();
@@ -76,7 +72,7 @@ callPart
 
 callPartId = ([a-zA-Z_][a-zA-Z0-9_]+) { return text() }
 
-args = head:value tail:(ws value_separator ws value)* {
+args = head:value tail:(ws value_separator ws value)* value_separator? {
     if(typeof tail === 'undefined') {
       return undefined;
     }

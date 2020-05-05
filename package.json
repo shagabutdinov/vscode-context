@@ -1,10 +1,10 @@
 {
-  "name": "scope",
-  "displayName": "Scope",
+  "name": "context",
+  "displayName": "Context",
   "description": "",
   "version": "0.0.1",
   "publisher": "shagabutdinov",
-  "repository": "https://github.com/shagabutdinov/vscode-scope",
+  "repository": "https://github.com/shagabutdinov/vscode-context",
   "engines": {
     "vscode": "^1.43.0"
   },
@@ -12,29 +12,24 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:scope.check",
-    "onCommand:scope.check2",
-    "onCommand:scope.selection",
-    "onCommand:scope.selections"
+    "onCommand:context.check"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Git",
+      "properties": {
+        "context.extensions": {
+          "type": "object",
+          "scope": "application",
+          "default": {}
+        }
+      }
+    },
     "commands": [
       {
-        "command": "scope.check",
-        "title": "Scope: Check"
-      },
-      {
-        "command": "scope.check2",
-        "title": "Scope: Check2"
-      },
-      {
-        "command": "scope.selection",
-        "title": "Scope: Lead selection"
-      },
-      {
-        "command": "scope.selections",
-        "title": "Scope: Selections array"
+        "command": "context.check",
+        "title": "Context: Check"
       }
     ]
   },
