@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { Document } from "extension/context";
+import { Environment } from "extension/context";
 
-export async function create(): Promise<Document> {
+export async function create(): Promise<Environment> {
   const config = vscode.workspace.getConfiguration();
 
   const extensions = Object.entries(

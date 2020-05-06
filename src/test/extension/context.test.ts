@@ -1,7 +1,7 @@
 import * as assert from "assert";
-import { check, Document } from "../../extension/context";
+import { check, Environment } from "../../extension/context";
 
-const document: Document = {
+const document: Environment = {
   commands: {
     commandTrue: () => true,
     commandFalse: () => false,
@@ -74,7 +74,7 @@ suite("Context", () => {
   suite("cache", () => {
     let counter = 0;
 
-    const document: Document = {
+    const document: Environment = {
       commands: {
         command: () => (counter += 1),
       },

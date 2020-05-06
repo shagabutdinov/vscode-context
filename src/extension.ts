@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { check } from "./extension/context";
-import { create as createDocument } from "./extension/document";
+import { create as createDocument } from "./extension/environment";
 
 const document = createDocument();
 

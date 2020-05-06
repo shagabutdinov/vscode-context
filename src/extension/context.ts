@@ -2,11 +2,14 @@ import * as vsc from "./lib/vsc";
 import { parse, Expression, Command, Object } from "./grammar";
 const isEqual = require("deep-equal");
 
-export type Document = {
+export type Environment = {
   commands: Record<string, (...args: any) => any>;
 };
 
-export function check(document: Document, context: string | string[]): boolean {
+export function check(
+  document: Environment,
+  context: string | string[],
+): boolean {
   if (context instanceof Array) {
     context = context.join(" ");
   }
@@ -16,7 +19,7 @@ export function check(document: Document, context: string | string[]): boolean {
 
 type Cache = Record<string, any>;
 
-function run(document: Document, context: Expression, cache: Cache): any {
+function run(document: Environment, context: Expression, cache: Cache): any {
   if ("value" in context) {
     return context.value;
   }
@@ -36,7 +39,7 @@ function run(document: Document, context: Expression, cache: Cache): any {
   throw new Error("Unknown context value: " + JSON.stringify(context));
 }
 
-function runArray(document: Document, array: Expression[], cache: Cache) {
+function runArray(document: Environment, array: Expression[], cache: Cache) {
   const result: any = [];
   for (const value of array) {
     result.push(run(document, value, cache));
@@ -45,7 +48,7 @@ function runArray(document: Document, array: Expression[], cache: Cache) {
   return result;
 }
 
-function runObject(document: Document, context: Object, cache: Cache) {
+function runObject(document: Environment, context: Object, cache: Cache) {
   const result: any = {};
 
   for (const [key, value] of Object.entries(context.object)) {
@@ -55,7 +58,7 @@ function runObject(document: Document, context: Object, cache: Cache) {
   return result;
 }
 
-function runCommand(document: Document, context: Command, cache: Cache) {
+function runCommand(document: Environment, context: Command, cache: Cache) {
   if (context.command === "and") {
     return runCommandAnd(document, context, cache);
   }
@@ -91,7 +94,7 @@ function runCommand(document: Document, context: Command, cache: Cache) {
   return runCommandExternal(document, context, cache);
 }
 
-function runCommandAnd(document: Document, context: Command, cache: Cache) {
+function runCommandAnd(document: Environment, context: Command, cache: Cache) {
   let result = true;
   for (const arg of context.args) {
     result = result && run(document, arg, cache);
@@ -100,7 +103,7 @@ function runCommandAnd(document: Document, context: Command, cache: Cache) {
   return result;
 }
 
-function runCommandOr(document: Document, context: Command, cache: Cache) {
+function runCommandOr(document: Environment, context: Command, cache: Cache) {
   let result = false;
   for (const arg of context.args) {
     result = result || run(document, arg, cache);
@@ -109,18 +112,26 @@ function runCommandOr(document: Document, context: Command, cache: Cache) {
   return result;
 }
 
-function runCommandEqual(document: Document, context: Command, cache: Cache) {
+function runCommandEqual(
+  document: Environment,
+  context: Command,
+  cache: Cache,
+) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return isEqual(left, right);
 }
 
-function runCommandGreater(document: Document, context: Command, cache: Cache) {
+function runCommandGreater(
+  document: Environment,
+  context: Command,
+  cache: Cache,
+) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return left > right;
 }
 
 function runCommandGreaterOrEqual(
-  document: Document,
+  document: Environment,
   context: Command,
   cache: Cache,
 ) {
@@ -128,13 +139,17 @@ function runCommandGreaterOrEqual(
   return left >= right;
 }
 
-function runCommandLesser(document: Document, context: Command, cache: Cache) {
+function runCommandLesser(
+  document: Environment,
+  context: Command,
+  cache: Cache,
+) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return left < right;
 }
 
 function runCommandLesserOrEqual(
-  document: Document,
+  document: Environment,
   context: Command,
   cache: Cache,
 ) {
@@ -142,7 +157,11 @@ function runCommandLesserOrEqual(
   return left <= right;
 }
 
-function getComparisonArgs(document: Document, context: Command, cache: Cache) {
+function getComparisonArgs(
+  document: Environment,
+  context: Command,
+  cache: Cache,
+) {
   if (context.args.length !== 2) {
     throw new Error(
       'Wrong number of arguments for "==" operator: ' + context.args.length,
@@ -156,7 +175,7 @@ function getComparisonArgs(document: Document, context: Command, cache: Cache) {
 }
 
 function runCommandExternal(
-  document: Document,
+  document: Environment,
   context: Command,
   cache: Cache,
 ) {
@@ -202,7 +221,7 @@ function runCommandExternal(
   return result;
 }
 
-function execute(document: Document, context: Command, cache: Cache): any {
+function execute(document: Environment, context: Command, cache: Cache): any {
   const args = runArray(document, context.args, cache);
   const cacheKey = JSON.stringify([context.command, args]);
 
