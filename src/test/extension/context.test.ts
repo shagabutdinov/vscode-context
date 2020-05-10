@@ -2,6 +2,7 @@ import * as assert from "assert";
 import { check, Environment } from "../../extension/context";
 
 const document: Environment = {
+  debug: false,
   commands: {
     commandTrue: () => true,
     commandFalse: () => false,
@@ -75,9 +76,8 @@ suite("Context", () => {
     let counter = 0;
 
     const document: Environment = {
-      commands: {
-        command: () => (counter += 1),
-      },
+      debug: false,
+      commands: { command: () => (counter += 1) },
     };
 
     setup(() => {

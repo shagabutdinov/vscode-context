@@ -4,6 +4,13 @@ import { Environment } from "extension/context";
 export async function create(): Promise<Environment> {
   const config = vscode.workspace.getConfiguration();
 
+  return {
+    commands: await createCommands(config),
+    debug: config.get<boolean>("debug") || false,
+  };
+}
+
+async function createCommands(config: vscode.WorkspaceConfiguration) {
   const extensions = Object.entries(
     config.get<Record<string, boolean>>("context.extensions") || {},
   );
@@ -37,12 +44,29 @@ export async function create(): Promise<Environment> {
     commands = { ...commands, ...(await extensionObject.exports.contexts()) };
   }
 
-  return { commands };
+  return commands;
 }
 
 const defaultCommands: Record<string, (...args: any) => any> = {
   selection: () => editor().selection,
-  ["selection.precedingText"]: () => document().lineAt(active()),
+  ["selection.text"]: () =>
+    document().getText(new vscode.Range(start(), end())),
+  ["selection.precedingText"]: () =>
+    document().lineAt(active()).text.substring(0, active().character),
+  ["selection.followingText"]: () =>
+    document().lineAt(active()).text.substring(active().character),
+  ["selection.anchorPrecedingText"]: () =>
+    document().lineAt(anchor()).text.substring(0, anchor().character),
+  ["selection.anchorFollowingText"]: () =>
+    document().lineAt(anchor()).text.substring(anchor().character),
+  ["selection.startPrecedingText"]: () =>
+    document().lineAt(start()).text.substring(0, start().character),
+  ["selection.startFollowingText"]: () =>
+    document().lineAt(start()).text.substring(start().character),
+  ["selection.endPrecedingText"]: () =>
+    document().lineAt(end()).text.substring(0, end().character),
+  ["selection.endFollowingText"]: () =>
+    document().lineAt(end()).text.substring(end().character),
   selections: () => editor().selections,
   ["selection.bol"]: () => new vscode.Position(active().line, 0),
   ["selection.bolNonEmpty"]: () =>
@@ -74,4 +98,16 @@ function document() {
 
 function active() {
   return editor().selection.active;
+}
+
+function anchor() {
+  return editor().selection.anchor;
+}
+
+function start() {
+  return editor().selection.start;
+}
+
+function end() {
+  return editor().selection.end;
 }

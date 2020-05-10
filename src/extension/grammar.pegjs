@@ -179,7 +179,6 @@ zero = "0"
 string "string"
   = quote chars:char* quote { return chars.join(""); }
   / single_quote chars:single_quote_char* single_quote { return chars.join(""); }
-  // / [a-zA-Z][a-zA-Z0-9]* { return text() } // uncomment for naked strings
 
 quote = '"'
 
@@ -190,6 +189,7 @@ char
         '"'
       / "\\"
       / "/"
+      / "\n"
       / "b" { return "\b"; }
       / "f" { return "\f"; }
       / "n" { return "\n"; }
@@ -206,7 +206,9 @@ unescaped = [^\0-\x1F\x22\x5C]
 single_quote = "'"
 single_quote_char
   = unescaped_single
-  / escape char:("'") { return char; }
+  / "\n"
+  / escape char:("'" / "\\") { return char; }
+  / escape
 
 unescaped_single = [^\0-\x1F\x27\x5C]
 

@@ -4,6 +4,7 @@ const isEqual = require("deep-equal");
 
 export type Environment = {
   commands: Record<string, (...args: any) => any>;
+  debug: boolean;
 };
 
 export function check(
@@ -183,31 +184,12 @@ function runCommandExternal(
 
   for (const part of context.chain) {
     if ("property" in part) {
-      if (!(part.property in result)) {
-        throw new Error(
-          'Unknown property "' +
-            part.property +
-            '" on the object: ' +
-            JSON.stringify(result),
-        );
-      }
-
       result = result[part.property];
       continue;
     }
 
     if ("method" in part) {
-      if (!(part.method in result)) {
-        throw new Error(
-          'Unknown method "' +
-            part.method +
-            '" on the object: ' +
-            JSON.stringify(result),
-        );
-      }
-
       result = result[part.method](...runArray(document, part.args, cache));
-
       continue;
     }
 
@@ -234,6 +216,13 @@ function execute(document: Environment, context: Command, cache: Cache): any {
   }
 
   const result = document.commands[context.command](...args);
+
+  console.debug(
+    "context command execution result: " +
+      context.command +
+      `(${args.map((arg: any) => JSON.stringify(arg)).join(", ")}) => ` +
+      JSON.stringify(result),
+  );
 
   cache[cacheKey] = result;
   return result;
