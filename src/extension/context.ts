@@ -217,12 +217,14 @@ function execute(document: Environment, context: Command, cache: Cache): any {
 
   const result = document.commands[context.command](...args);
 
-  console.debug(
-    "context command execution result: " +
-      context.command +
-      `(${args.map((arg: any) => JSON.stringify(arg)).join(", ")}) => ` +
-      JSON.stringify(result),
-  );
+  if (document.debug) {
+    console.debug(
+      "context command execution result: " +
+        context.command +
+        `(${args.map((arg: any) => JSON.stringify(arg)).join(", ")}) => ` +
+        JSON.stringify(result),
+    );
+  }
 
   cache[cacheKey] = result;
   return result;
