@@ -18,6 +18,20 @@ export function check(
   return !!run(document, parse(context), {});
 }
 
+export function checkSyntax(context: string | string[]): Error | null {
+  if (context instanceof Array) {
+    context = context.join(" ");
+  }
+
+  try {
+    parse(context);
+  } catch (error) {
+    return error;
+  }
+
+  return null;
+}
+
 type Cache = Record<string, any>;
 
 function run(document: Environment, context: Expression, cache: Cache): any {

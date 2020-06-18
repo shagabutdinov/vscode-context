@@ -6,13 +6,13 @@ export async function create(): Promise<Environment> {
 
   return {
     commands: await createCommands(config),
-    debug: config.get<boolean>("debug") || false,
+    debug: config.get<boolean>("context.debug") || false,
   };
 }
 
 async function createCommands(config: vscode.WorkspaceConfiguration) {
   const extensions = Object.entries(
-    config.get<Record<string, boolean>>("context.extensions") || {},
+    config.get<Record<string, boolean>>("context.extensions") || {}
   );
 
   let commands: Record<string, (...args: any) => any> = {
@@ -27,7 +27,7 @@ async function createCommands(config: vscode.WorkspaceConfiguration) {
     const extensionObject = vscode.extensions.getExtension(extensionName);
     if (!extensionObject) {
       throw new Error(
-        "Context extension declared but not found: " + extensionName,
+        "Context extension declared but not found: " + extensionName
       );
     }
 
@@ -35,9 +35,7 @@ async function createCommands(config: vscode.WorkspaceConfiguration) {
 
     if (!extensionObject.exports?.contexts) {
       throw new Error(
-        "Context extension does not have method: " +
-          extensionName +
-          ".contexts",
+        "Context extension does not have method: " + extensionName + ".contexts"
       );
     }
 
@@ -72,7 +70,7 @@ const defaultCommands: Record<string, (...args: any) => any> = {
   ["selection.bolNonEmpty"]: () =>
     new vscode.Position(
       active().line,
-      document().lineAt(active()).firstNonWhitespaceCharacterIndex,
+      document().lineAt(active()).firstNonWhitespaceCharacterIndex
     ),
   ["selection.eol"]: () =>
     new vscode.Position(active().line, document().lineAt(active()).text.length),
@@ -81,6 +79,8 @@ const defaultCommands: Record<string, (...args: any) => any> = {
     new vscode.Position(line, character),
   ["position.shift"]: (position: vscode.Position, value: number) =>
     document().positionAt(document().offsetAt(position) + value),
+  ["editor"]: () => editor(),
+  ["document"]: () => document(),
 };
 
 function editor() {
