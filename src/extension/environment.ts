@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Environment } from "extension/context";
+import defaultCommands from "./environment/commands";
 
 export async function create(): Promise<Environment> {
   const config = vscode.workspace.getConfiguration();
@@ -44,44 +45,6 @@ async function createCommands(config: vscode.WorkspaceConfiguration) {
 
   return commands;
 }
-
-const defaultCommands: Record<string, (...args: any) => any> = {
-  selection: () => editor().selection,
-  ["selection.text"]: () =>
-    document().getText(new vscode.Range(start(), end())),
-  ["selection.precedingText"]: () =>
-    document().lineAt(active()).text.substring(0, active().character),
-  ["selection.followingText"]: () =>
-    document().lineAt(active()).text.substring(active().character),
-  ["selection.anchorPrecedingText"]: () =>
-    document().lineAt(anchor()).text.substring(0, anchor().character),
-  ["selection.anchorFollowingText"]: () =>
-    document().lineAt(anchor()).text.substring(anchor().character),
-  ["selection.startPrecedingText"]: () =>
-    document().lineAt(start()).text.substring(0, start().character),
-  ["selection.startFollowingText"]: () =>
-    document().lineAt(start()).text.substring(start().character),
-  ["selection.endPrecedingText"]: () =>
-    document().lineAt(end()).text.substring(0, end().character),
-  ["selection.endFollowingText"]: () =>
-    document().lineAt(end()).text.substring(end().character),
-  selections: () => editor().selections,
-  ["selection.bol"]: () => new vscode.Position(active().line, 0),
-  ["selection.bolNonEmpty"]: () =>
-    new vscode.Position(
-      active().line,
-      document().lineAt(active()).firstNonWhitespaceCharacterIndex
-    ),
-  ["selection.eol"]: () =>
-    new vscode.Position(active().line, document().lineAt(active()).text.length),
-  ["range"]: (start, end) => new vscode.Range(start, end),
-  ["position"]: (line: number, character: number) =>
-    new vscode.Position(line, character),
-  ["position.shift"]: (position: vscode.Position, value: number) =>
-    document().positionAt(document().offsetAt(position) + value),
-  ["editor"]: () => editor(),
-  ["document"]: () => document(),
-};
 
 function editor() {
   const result = vscode.window.activeTextEditor;
