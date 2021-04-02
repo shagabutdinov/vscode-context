@@ -65,6 +65,18 @@ const cursor: Record<string, (...args: any) => any> = {
   ["cursor.endPrecedingText"]: () => getPrecedingText(document(), end()),
   ["cursor.endFollowingText"]: () => getFollowingText(document(), end()),
   ["cursor.bol"]: () => new vscode.Position(active().line, 0),
+  ["cursor.bofToStartText"]: () =>
+    document().getText(new vscode.Range(new vscode.Position(0, 0), start())),
+  ["cursor.endToEofText"]: () =>
+    document().getText(
+      new vscode.Range(
+        new vscode.Position(
+          document().lineCount,
+          document().lineAt(document().lineCount - 1).text.length
+        ),
+        start()
+      )
+    ),
   ["cursor.bolNonEmpty"]: () =>
     new vscode.Position(
       active().line,
