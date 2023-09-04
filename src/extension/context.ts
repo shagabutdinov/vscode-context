@@ -9,7 +9,7 @@ export type Environment = {
 
 export function check(
   document: Environment,
-  context: string | string[],
+  context: string | string[]
 ): boolean {
   if (context instanceof Array) {
     context = context.join(" ");
@@ -130,7 +130,7 @@ function runCommandOr(document: Environment, context: Command, cache: Cache) {
 function runCommandEqual(
   document: Environment,
   context: Command,
-  cache: Cache,
+  cache: Cache
 ) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return isEqual(left, right);
@@ -139,7 +139,7 @@ function runCommandEqual(
 function runCommandGreater(
   document: Environment,
   context: Command,
-  cache: Cache,
+  cache: Cache
 ) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return left > right;
@@ -148,7 +148,7 @@ function runCommandGreater(
 function runCommandGreaterOrEqual(
   document: Environment,
   context: Command,
-  cache: Cache,
+  cache: Cache
 ) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return left >= right;
@@ -157,7 +157,7 @@ function runCommandGreaterOrEqual(
 function runCommandLesser(
   document: Environment,
   context: Command,
-  cache: Cache,
+  cache: Cache
 ) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return left < right;
@@ -166,7 +166,7 @@ function runCommandLesser(
 function runCommandLesserOrEqual(
   document: Environment,
   context: Command,
-  cache: Cache,
+  cache: Cache
 ) {
   const [left, right] = getComparisonArgs(document, context, cache);
   return left <= right;
@@ -175,11 +175,11 @@ function runCommandLesserOrEqual(
 function getComparisonArgs(
   document: Environment,
   context: Command,
-  cache: Cache,
+  cache: Cache
 ) {
   if (context.args.length !== 2) {
     throw new Error(
-      'Wrong number of arguments for "==" operator: ' + context.args.length,
+      'Wrong number of arguments for "==" operator: ' + context.args.length
     );
   }
 
@@ -192,9 +192,12 @@ function getComparisonArgs(
 function runCommandExternal(
   document: Environment,
   context: Command,
-  cache: Cache,
+  cache: Cache
 ) {
   let result = execute(document, context, cache);
+  if (!result) {
+    return result;
+  }
 
   for (const part of context.chain) {
     if ("property" in part) {
@@ -236,7 +239,7 @@ function execute(document: Environment, context: Command, cache: Cache): any {
       "context command execution result: " +
         context.command +
         `(${args.map((arg: any) => JSON.stringify(arg)).join(", ")}) => ` +
-        JSON.stringify(result),
+        JSON.stringify(result)
     );
   }
 
